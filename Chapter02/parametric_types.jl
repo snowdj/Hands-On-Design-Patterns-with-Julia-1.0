@@ -9,7 +9,7 @@ struct Stock <: Equity
     name::String
 end
 
-mutable struct StockHolding{T <: Real} 
+struct StockHolding{T <: Real} 
     stock::Stock
     quantity::T
 end
@@ -18,19 +18,19 @@ end
 
 julia> stock = Stock("AAPL", "Apple, Inc.");
 
-julia> holding = StockHolding{Int}(stock, 100)
+julia> holding = StockHolding(stock, 100)
 StockHolding{Int64}(Stock("AAPL", "Apple, Inc."), 100)
 
-julia> holding = StockHolding{Float64}(stock, 100)
+julia> holding = StockHolding(stock, 100.00)
 StockHolding{Float64}(Stock("AAPL", "Apple, Inc."), 100.0)
 
-julia> holding = StockHolding{Rational}(stock, 100 // 3)
+julia> holding = StockHolding(stock, 100 // 3)
 StockHolding{Rational}(Stock("AAPL", "Apple, Inc."), 100//3)
 =#
 
 #------------------------------------------------------------------------------
 
-mutable struct StockHolding2{T <: Real, P <: AbstractFloat} 
+struct StockHolding2{T <: Real, P <: AbstractFloat} 
     stock::Stock
     quantity::T
     price::P
@@ -65,6 +65,8 @@ mutable struct CashHolding{P} <: Holding{P}
 end
 
 #= REPL
+julia> stock = Stock("AAPL", "Apple, Inc.");
+
 julia> certificate_in_the_safe = StockHolding3(stock, 100, 180.00, 18000.00)
 StockHolding3{Int64,Float64}(Stock("AAPL", "Apple, Inc."), 100, 180.0, 18000.0)
 
@@ -75,5 +77,8 @@ julia> certificate_in_the_safe isa Holding{Float64}
 true
 
 julia> Holding{Float64} <: Holding
+true
+
+julia> Holding{Int} <: Holding
 true
 =#

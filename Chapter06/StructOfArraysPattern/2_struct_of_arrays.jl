@@ -1,7 +1,7 @@
 # What if we turn all fields into independent arrays?
 
 struct TripPaymentColumnarData
-    vendor_id::Vector{String}
+    vendor_id::Vector{Int}
     tpep_pickup_datetime::Vector{String}
     tpep_dropoff_datetime::Vector{String}
     passenger_count::Vector{Int}
@@ -31,6 +31,7 @@ columar_records = TripPaymentColumnarData(
     [r.total_amount for r in records]
 );
 
+@btime mean(columar_records.fare_amount);
 #=
 julia> @btime mean(columar_records.fare_amount);
   27.170 μs (1 allocation: 16 bytes)

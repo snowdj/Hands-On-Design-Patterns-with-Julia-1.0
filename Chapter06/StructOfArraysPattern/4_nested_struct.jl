@@ -1,5 +1,8 @@
 # What do we do if the struct has a nested structure?
 
+using BenchmarkTools, CSV, Statistics
+using StructArrays
+
 struct Fare
     fare_amount::Float64
     extra::Float64
@@ -11,7 +14,7 @@ struct Fare
 end
 
 struct TripPayment
-    vendor_id::String
+    vendor_id::Int
     tpep_pickup_datetime::String
     tpep_dropoff_datetime::String
     passenger_count::Int
@@ -19,43 +22,38 @@ struct TripPayment
     fare::Fare
 end
 
-function parse_tripdata_file(filename)
-    records = Vector{TripPayment}()
-    open(filename) do f
-        readline(f); readline(f); #skip header/blank lines
-        while !eof(f)
-            line = readline(f) 
-            fields = split(line, ",")
-            fare = Fare(
-                parse(Float64, fields[11]),
-                parse(Float64, fields[12]),
-                parse(Float64, fields[13]),
-                parse(Float64, fields[14]),
-                parse(Float64, fields[15]),
-                parse(Float64, fields[16]),
-                parse(Float64, fields[17])
-            )
-            record = TripPayment(
-                fields[1],
-                fields[2],
-                fields[3],
-                parse(Int, fields[4]),
-                parse(Float64, fields[5]),
-                fare
-            )
-            push!(records, record)
-        end 
+# Use CVS.jl to parse the file into a vecot or TripPayment objects
+function read_trip_payment_file(file)
+    f = CSV.File(file, datarow = 3)
+    records = Vector{TripPayment}(undef, length(f))
+    for (i, row) in enumerate(f)
+        records[i] = TripPayment(row.VendorID,
+                                 row.tpep_pickup_datetime,
+                                 row.tpep_dropoff_datetime,
+                                 row.passenger_count,
+                                 row.trip_distance,
+                                 Fare(row.fare_amount,
+                                      row.extra,
+                                      row.mta_tax,
+                                      row.tip_amount,
+                                      row.tolls_amount,
+                                      row.improvement_surcharge,
+                                      row.total_amount))
     end
     return records
 end
 
+records = read_trip_payment_file("yellow_tripdata_2018-12_100k.csv");
+records[1]
 #=
-julia> records = parse_tripdata_file("yellow_tripdata_2018-12_100k.csv");
+julia> records = read_trip_payment_file("yellow_tripdata_2018-12_100k.csv");
 
 julia> records[1]
-TripPayment("1", "2018-12-01 00:28:22", "2018-12-01 00:44:07", 2, 2.5, Fare(12.0, 0.5, 0.5, 3.95, 0.0, 0.3, 17.25))
+TripPayment(1, "2018-12-01 00:28:22", "2018-12-01 00:44:07", 2, 2.5, Fare(12.0, 0.5, 0.5, 3.95, 0.0, 0.3, 17.25))
 =#
 
+sa = StructArray(records);
+sa.fare.fare_amount
 # Doesn't work if we play the same trick as before
 #=
 julia> sa = StructArray(records);
@@ -65,6 +63,8 @@ ERROR: type Array has no field fare_amount
 =#
 
 # How?
+sa = StructArray(records, unwrap = t -> t <: Fare);
+sa.fare.fare_amount
 #=
 julia> sa = StructArray(records, unwrap = t -> t <: Fare);
 
@@ -79,6 +79,7 @@ julia> sa.fare.fare_amount
 =#
 
 # It has good performance as expected
+@btime mean(sa.fare.fare_amount)
 #=
 julia> @btime mean(sa.fare.fare_amount)
   27.198 μs (1 allocation: 16 bytes)
